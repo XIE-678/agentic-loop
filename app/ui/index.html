@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>谢晨瑞助手 · AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:            #0F0F23;
+            --card:          #1E1C35;
+            --muted:         #27273B;
+            --border:        #4C1D95;
+            --primary:       #7C3AED;
+            --primary-glow:  #A78BFA;
+            --accent:        #F43F5E;
+            --text:          #E2E8F0;
+            --text-muted:    #94A3B8;
+            --surface-user:  #7C3AED;
+            --surface-bot:   #1E1C35;
+            --radius-lg:     16px;
+            --radius-md:     12px;
+            --radius-sm:     8px;
+            --space-unit:    8px;
+            --font-mono:     'JetBrains Mono', monospace;
+            --font-display:  'Orbitron', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-mono);
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            /* subtle scanline overlay */
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(124,58,237,.015) 2px, rgba(124,58,237,.015) 4px);
+        }
+
+        /* ── phone‑frame ── */
+        .phone-frame {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            border-left:  1px solid rgba(124,58,237,.15);
+            border-right: 1px solid rgba(124,58,237,.15);
+            box-shadow: 0 0 80px rgba(124,58,237,.08), 0 0 20px rgba(124,58,237,.04);
+            position: relative;
+        }
+
+        /* ── header ── */
+        .header {
+            padding: calc(var(--space-unit) * 2.5) calc(var(--space-unit) * 2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(124,58,237,.2);
+            background: rgba(30,28,53,.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 36px; height: 36px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 0 16px rgba(124,58,237,.4);
+        }
+        .header-logo svg { width: 20px; height: 20px; }
+        .header-info { flex: 1; min-width: 0; }
+        .header-title {
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 14px;
+            letter-spacing: .06em;
+            color: var(--text);
+            text-shadow: 0 0 12px rgba(167,139,250,.5);
+        }
+        .header-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--primary-glow);
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+        .header-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #22C55E;
+            box-shadow: 0 0 8px rgba(34,197,94,.6);
+            flex-shrink: 0;
+        }
+
+        /* ── messages ── */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: calc(var(--space-unit) * 2);
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--space-unit) * 1.5);
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .messages::-webkit-scrollbar { width: 4px; }
+        .messages::-webkit-scrollbar-thumb { background: rgba(124,58,237,.3); border-radius: 2px; }
+
+        /* ── msg bubble ── */
+        .msg {
+            max-width: 82%;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            line-height: 1.6;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            word-break: break-word;
+            animation: msg-in .25s ease-out both;
+            position: relative;
+        }
+        @keyframes msg-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg.user {
+            align-self: flex-end;
+            background: var(--surface-user);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 0 20px rgba(124,58,237,.25);
+        }
+        .msg.bot {
+            align-self: flex-start;
+            background: var(--surface-bot);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(124,58,237,.15);
+        }
+
+        /* cursor blink */
+        .msg.bot.streaming::after {
+            content: '▍';
+            animation: blink 1s step-end infinite;
+            color: var(--primary-glow);
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* ── timestamp ── */
+        .msg-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: .04em;
+        }
+
+        /* ── input area ── */
+        .input-area {
+            padding: var(--space-unit) calc(var(--space-unit) * 2);
+            padding-bottom: max(var(--space-unit), env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(124,58,237,.2);
+            display: flex;
+            gap: var(--space-unit);
+            flex-shrink: 0;
+            background: rgba(15,15,35,.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .input-area input {
+            flex: 1;
+            min-height: 44px;
+            padding: 0 14px;
+            background: var(--card);
+            border: 1px solid rgba(124,58,237,.25);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .input-area input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+        }
+        .input-area input::placeholder { color: var(--text-muted); }
+
+        .btn-send {
+            min-width: 44px; min-height: 44px;
+            padding: 0 18px;
+            background: linear-gradient(135deg, var(--primary), #6366F1);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: .08em;
+            cursor: pointer;
+            transition: all .2s ease;
+            box-shadow: 0 0 20px rgba(124,58,237,.3);
+            display: flex; align-items: center; gap: 6px;
+            touch-action: manipulation;
+        }
+        .btn-send:active {
+            transform: scale(.95);
+            box-shadow: 0 0 28px rgba(124,58,237,.5);
+        }
+        .btn-send:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-send svg { width: 18px; height: 18px; }
+
+        /* ── empty / welcome ── */
+        .welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            flex: 1;
+        }
+        .welcome-icon {
+            width: 64px; height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 40px rgba(124,58,237,.3);
+            margin-bottom: 4px;
+        }
+        .welcome-icon svg { width: 32px; height: 32px; }
+        .welcome h2 {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-shadow: 0 0 12px rgba(167,139,250,.5);
+        }
+        .welcome p {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 260px;
+            line-height: 1.6;
+        }
+        .welcome-hints {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px;
+        }
+        .welcome-hints button {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(124,58,237,.3);
+            background: rgba(124,58,237,.08);
+            color: var(--primary-glow);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all .2s ease;
+            touch-action: manipulation;
+        }
+        .welcome-hints button:active { background: rgba(124,58,237,.2); border-color: var(--primary); }
+
+        /* ── disclaimer ── */
+        .disclaimer {
+            text-align: center;
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 4px var(--space-unit);
+            flex-shrink: 0;
+            opacity: .6;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .msg { animation: none; }
+            .btn-send { transition: none; }
+            .msg.bot.streaming::after { animation: none; display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+
+    <!-- header -->
+    <div class="header">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+        </div>
+        <div class="header-info">
+            <div class="header-title">谢晨瑞助手</div>
+            <div class="header-badge">AI · ONLINE</div>
+        </div>
+        <div class="header-dot" title="在线"></div>
+    </div>
+
+    <!-- messages -->
+    <div class="messages" id="msgs">
+        <div class="welcome" id="welcome">
+            <div class="welcome-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+                </svg>
+            </div>
+            <h2>谢晨瑞助手</h2>
+            <p>AI 驱动的智能对话助手<br>支持联网搜索、知识库检索</p>
+            <div class="welcome-hints">
+                <button onclick="quickSend('今天有什么新闻？')">📡 今日新闻</button>
+                <button onclick="quickSend('agent 是什么？')">💡 agent 是什么</button>
+                <button onclick="quickSend('北京天气怎么样？')">🌤 查天气</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- input -->
+    <div class="input-area">
+        <input id="input" placeholder="输入消息…" onkeydown="if(event.key==='Enter')send()" autocomplete="off">
+        <button class="btn-send" onclick="send()" id="sendBtn" aria-label="发送">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- disclaimer -->
+    <div class="disclaimer">谢晨瑞助手 · AI 生成内容仅供参考</div>
+
+</div>
+
+<script>
+    // ── thread id ──
+    let tid = localStorage.getItem('sr_tid');
+    if (!tid) {
+        tid = 'web-' + Date.now();
+        localStorage.setItem('sr_tid', tid);
+    }
+
+    const msgsEl = document.getElementById('msgs');
+    const welcomeEl = document.getElementById('welcome');
+
+    function hideWelcome() {
+        if (welcomeEl) welcomeEl.style.display = 'none';
+    }
+
+    // ── send ──
+    async function send() {
+        const input = document.getElementById('input');
+        const btn = document.getElementById('sendBtn');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        hideWelcome();
+        addMsg(msg, 'user');
+        input.value = '';
+        input.disabled = true;
+        btn.disabled = true;
+
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg bot streaming';
+        msgsEl.appendChild(botDiv);
+
+        try {
+            const res = await fetch('/chat/stream', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({question: msg, thread_id: tid})
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullText = '';
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const data = JSON.parse(line.slice(6));
+                    if (data.done) break;
+                    fullText += data.token;
+                    botDiv.textContent = fullText;
+                    msgsEl.scrollTop = msgsEl.scrollHeight;
+                }
+            }
+            // done streaming
+            botDiv.classList.remove('streaming');
+            if (!fullText) botDiv.textContent = '(空响应)';
+
+            // append time
+            const time = document.createElement('div');
+            time.className = 'msg-time';
+            time.textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+            botDiv.appendChild(time);
+
+        } catch(e) {
+            botDiv.classList.remove('streaming');
+            botDiv.textContent = '❌ ' + e.message;
+        }
+
+        input.disabled = false;
+        btn.disabled = false;
+        input.focus();
+    }
+
+    // ── add user msg ──
+    function addMsg(text, role) {
+        hideWelcome();
+        const div = document.createElement('div');
+        div.className = 'msg ' + role;
+        div.textContent = text;
+        const time = document.createElement('div');
+        time.className = 'msg-time';
+        time.textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+        div.appendChild(time);
+        msgsEl.appendChild(div);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+
+    // ── quick send ──
+    function quickSend(text) {
+        document.getElementById('input').value = text;
+        send();
+    }
+</script>
+</body>
+</html>
