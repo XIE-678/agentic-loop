@@ -1,9 +1,13 @@
-import requests
-from bs4 import BeautifulSoup
+import os
+from datetime import datetime
+from tavily import TavilyClient
 from langchain_core.tools import tool
 from app.tools.schemas import SearchWebInput
 from app.tools.search_limit import _bump_search_count, search_count, SEARCH_LIMIT
 from app.logging_config import logger
+
+# Tavily 客户端（全局复用）
+_tavily = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY"))
 
 
 @tool(args_schema=SearchWebInput)
@@ -17,29 +21,26 @@ def search_web(query: str):
             "请基于之前搜索到的结果回答用户，不要再调用搜索工具。"
             "如果搜索结果不够好，诚实告诉用户并给出已有信息即可。"
         )
+
+    # 拼入当前日期，确保搜索时效性（防止 Tavily 返回昨日缓存）
+    today = datetime.now().strftime("%Y年%m月%d日")
+    dated_query = f"{today} {query}"
+
     logger.info("联网搜索(%d/%d): %s", search_count, SEARCH_LIMIT, query[:40])
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = requests.get("https://www.bing.com/search", params={"q": query}, headers=headers, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        results = []
-        for li in soup.select("li.b_algo"):
-            a_tag = li.select_one("h2 a")
-            p_tag = li.select_one(".b_caption p")
-            if a_tag:
-                results.append({
-                    "title": a_tag.get_text(strip=True),
-                    "href": a_tag.get("href", ""),
-                    "body": p_tag.get_text(strip=True) if p_tag else "",
-                })
-            if len(results) >= 5:
-                break
+        resp = _tavily.search(
+            query=dated_query,
+            max_results=5,
+            include_raw_content=False,
+        )
+        results = resp.get("results", [])
         logger.info("搜索返回 %d 条结果", len(results))
         if not results:
             return "没有搜索到相关内容。"
+
         parts = []
         for r in results:
-            parts.append(f"【{r['title']}】\n{r['href']}\n{r['body']}")
+            parts.append(f"【{r['title']}】\n{r['url']}\n{r['content']}")
         return "\n\n---\n\n".join(parts)
     except Exception as e:
         logger.warning("搜索失败: %s", e)

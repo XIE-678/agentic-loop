@@ -10,4 +10,4 @@ langchain-huggingface
 langchain-text-splitters
 sentence-transformers
 requests
-beautifulsoup4
+tavily-python

@@ -346,12 +346,8 @@
 </div>
 
 <script>
-    // ── thread id ──
-    let tid = localStorage.getItem('sr_tid');
-    if (!tid) {
-        tid = 'web-' + Date.now();
-        localStorage.setItem('sr_tid', tid);
-    }
+    // ── thread id：每次打开/刷新页面都是新会话 ──
+    let tid = 'web-' + Date.now();
 
     const msgsEl = document.getElementById('msgs');
     const welcomeEl = document.getElementById('welcome');

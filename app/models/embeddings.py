@@ -1,3 +1,4 @@
+import app.config  # 确保 HF_ENDPOINT 等环境变量最先设置
 import os
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
@@ -5,7 +6,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.logging_config import logger
 
 # ===== 嵌入模型 + 向量库 =====
-embeddings = HuggingFaceEmbeddings(model_name="shibing624/text2vec-base-chinese")
+embeddings = HuggingFaceEmbeddings(
+    model_name="shibing624/text2vec-base-chinese",
+    model_kwargs={"local_files_only": True},
+)
 
 chroma_dir = "./chroma_test"
 

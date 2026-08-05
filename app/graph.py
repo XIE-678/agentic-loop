@@ -6,6 +6,7 @@ from app.nodes import (
     supervisor_node,
     knowledge_node,
     personal_node,
+    output_guard_node,
     summarize_node,
     should_summarize,
 )
@@ -23,6 +24,7 @@ builder.add_node("rewrite_query", rewrite_query_node)  # 新入口
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("knowledge_agent", knowledge_node)
 builder.add_node("personal_agent", personal_node)
+builder.add_node("output_guard", output_guard_node)
 builder.add_node("summarize", summarize_node)
 
 builder.set_entry_point("rewrite_query")  # 每次请求先扩写query
@@ -31,11 +33,11 @@ builder.add_conditional_edges("supervisor", router, {
     "knowledge": "knowledge_agent",
     "personal": "personal_agent",
 })
-builder.add_conditional_edges("knowledge_agent", should_summarize, {
-    "summarize": "summarize",
-    END: END,
-})
-builder.add_conditional_edges("personal_agent", should_summarize, {
+# Agent 输出 → 审查节点
+builder.add_edge("knowledge_agent", "output_guard")
+builder.add_edge("personal_agent", "output_guard")
+# 审查通过 → 摘要判断 → summarize/END
+builder.add_conditional_edges("output_guard", should_summarize, {
     "summarize": "summarize",
     END: END,
 })
